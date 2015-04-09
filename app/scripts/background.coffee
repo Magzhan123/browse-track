@@ -3,7 +3,7 @@
 chrome.runtime.onInstalled.addListener (details) ->
   console.log('previousVersion', details.previousVersion)
 
-chrome.browserAction.setBadgeText({text: '+15'})
+chrome.browserAction.setBadgeText({text: 'HI!'})
 
 Stat =
   data: {}
@@ -13,15 +13,29 @@ tabChanged = (url) ->
   if Stat.cur
     lst = Stat.data[Stat.cur]
     lst.push(new Date())
-  Stat.cur = url
-  lst = Stat.data[url] or []
+
+  [d, other] = url.split '://'
+  [domain, oth] = other.split '/'
+  urlN = d + "://" + domain
+
+  Stat.cur = urlN
+  lst = Stat.data[urlN] or []
   lst.push(new Date())
-  Stat.data[url] = lst
+  Stat.data[urlN] = lst
 
 calc = (url)->
-  lst = Stat.data[url]
+  [d, other] = url.split '://'
+  [domain, oth] = other.split '/'
+  urlN = d + "://" + domain
+
+  lst = Stat.data[urlN]
   if not lst
     return 0
+
+  [d, other] = url.split '://'
+  if d not in ['http', 'https']
+    return 0
+
   n = Math.floor (lst.length / 2)
   res = 0
   for i in [0..n]
@@ -32,7 +46,28 @@ calc = (url)->
 
 updateBadge = (url)->
   res = calc url
-  chrome.browserAction.setBadgeText({text: "#{res / 1000}"})
+  hh = res // (3600*60000)
+  mm = res // (60000)
+  ss = parseInt(((res % 60000) / 1000)%60)
+  HH = 
+  if hh <= 9
+    '0'+hh
+  else
+    hh
+
+  MM = 
+  if mm <= 9
+    '0'+mm
+  else
+    mm
+
+  SS = 
+  if ss <= 9
+    '0'+ss
+  else
+    ss
+
+  chrome.browserAction.setBadgeText({text: "#{HH}:#{MM}:#{SS}"})
 
 
 chrome.tabs.onActivated.addListener (activeInfo)->
@@ -52,5 +87,5 @@ chrome.alarms.onAlarm.addListener (alarm)->
       if tab.url
         updateBadge tab.url
 
-chrome.alarms.create("update", {periodInMinutes: 0.1})
+chrome.alarms.create("update", {periodInMinutes: 0.001})
 console.log('\'Allo \'Allo! Event Page for Browser Action')
